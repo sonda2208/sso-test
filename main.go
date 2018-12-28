@@ -12,7 +12,7 @@ import (
 )
 
 func main() {
-	conf, err := utils.LoadConfig("SSO_TEST")
+	conf, err := utils.LoadConfigFromFile("./config.json")
 	if err != nil {
 		log.Fatal(err)
 	}
