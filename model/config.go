@@ -1,15 +1,34 @@
 package model
 
-type ServiceSettings struct {
-	ListenAddress string `envconfig:"LISTEN_ADDRESS"`
-	OAuthSettings
-}
+const (
+	SSOServiceGithub = "github"
+	SSOServiceGitlab = "gitlab"
+)
 
 type OAuthSettings struct {
-	ClientID        string `envconfig:"CLIENT_ID"`
-	ClientSecret    string `envconfig:"CLIENT_SECRET"`
-	RedirectURI     string `envconfig:"REDIRECT_URI"`
-	AuthEndpoint    string `envconfig:"AUTH_ENDPOINT"`
-	TokenEndpoint   string `envconfig:"TOKEN_ENDPOINT"`
-	UserAPIEndpoint string `envconfig:"USER_API_ENDPOINT"`
+	Enable          bool
+	ClientID        string
+	ClientSecret    string
+	Scopes          string
+	AuthEndpoint    string
+	TokenEndpoint   string
+	UserAPIEndpoint string
+}
+
+type ServiceSettings struct {
+	ListenAddress  string
+	SiteURL        string
+	GithubSettings OAuthSettings
+	GitlabSettings OAuthSettings
+}
+
+func (s ServiceSettings) GetOAuthServiceSetting(service string) *OAuthSettings {
+	switch service {
+	case SSOServiceGithub:
+		return &s.GithubSettings
+	case SSOServiceGitlab:
+		return &s.GitlabSettings
+	}
+
+	return nil
 }
