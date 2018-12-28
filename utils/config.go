@@ -1,23 +1,23 @@
 package utils
 
 import (
-	"github.com/joho/godotenv"
-	"github.com/kelseyhightower/envconfig"
+	"encoding/json"
+	"io/ioutil"
+
 	"github.com/sonda2208/sso-test/model"
 )
 
-func LoadConfig(prefix string) (*model.ServiceSettings, error) {
-	conf := &model.ServiceSettings{}
-
-	err := godotenv.Load()
+func LoadConfigFromFile(path string) (*model.ServiceSettings, error) {
+	data, err := ioutil.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
 
-	err = envconfig.Process(prefix, conf)
+	setting := &model.ServiceSettings{}
+	err = json.Unmarshal(data, setting)
 	if err != nil {
 		return nil, err
 	}
 
-	return conf, nil
+	return setting, nil
 }
