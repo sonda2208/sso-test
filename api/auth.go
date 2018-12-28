@@ -1,25 +1,25 @@
 package api
 
 import (
-	"io"
-	"io/ioutil"
+	"bytes"
 	"net/http"
-	"net/url"
-	"strings"
+	"time"
 
-	"github.com/gojektech/heimdall/httpclient"
 	"github.com/labstack/echo"
 	"github.com/sonda2208/sso-test/model"
 )
 
+const (
+	OAuthCookie              = "AUTHCOOKIE"
+	OAuthCookieMaxAgeSeconds = 30 * 60 // 30 minutes
+)
+
 func (api *API) InitAuth() {
-	api.e.GET("/login", api.login)
+	api.e.GET("/oauth/:service/login", api.login)
 	api.e.GET("/login/:service/complete", api.complete)
 }
 
 func (api *API) complete(c echo.Context) error {
-	conf := api.server.Config()
-
 	oauthError := c.QueryParam("error")
 	if oauthError == "access_denied" {
 		return c.String(http.StatusUnauthorized, "oauth access denied")
@@ -30,53 +30,45 @@ func (api *API) complete(c echo.Context) error {
 		return c.String(http.StatusUnauthorized, "oauth missing code")
 	}
 
-	p := url.Values{}
-	p.Set("client_id", conf.ClientID)
-	p.Set("client_secret", conf.ClientSecret)
-	p.Set("code", code)
-	p.Set("grant_type", model.AccessTokenGrantType)
-	p.Set("redirect_uri", conf.RedirectURI)
+	state := c.QueryParam("state")
+	if len(state) == 0 {
+		return c.String(http.StatusUnauthorized, "missing state")
+	}
 
-	client := httpclient.NewClient()
-	res, err := client.Post(conf.TokenEndpoint, strings.NewReader(p.Encode()), http.Header{
-		"Content-Type": []string{"application/x-www-form-urlencoded"},
-		"Accept":       []string{"application/json"},
-	})
+	cookie, err := c.Cookie(OAuthCookie)
 	if err != nil {
 		return c.String(http.StatusInternalServerError, err.Error())
 	}
 
-	ar := model.AccessResponseFromJson(res.Body)
-	if res.Body != nil {
-		io.Copy(ioutil.Discard, res.Body)
-		res.Body.Close()
+	service := c.Param("service")
+	redirectURI := api.server.Config().SiteURL + "/login/" + service + "/complete"
+	data, err := api.server.AuthorizeOAuthUser(service, code, state, cookie.Value, redirectURI)
+	if err != nil {
+		return c.String(http.StatusInternalServerError, err.Error())
 	}
 
-	if ar == nil {
-		return c.String(http.StatusInternalServerError, "bad response")
-	}
-
-	if len(ar.AccessToken) == 0 {
-		return c.String(http.StatusInternalServerError, "missing access token")
-	}
-
-	if ar.TokenType != model.AccessTokenType {
-		return c.String(http.StatusInternalServerError, "invalid token type")
-	}
-
-	p = url.Values{}
-	p.Set("access_token", ar.AccessToken)
-	res, err = client.Get(conf.UserAPIEndpoint, http.Header{
-		"Content-Type":  []string{"application/x-www-form-urlencoded"},
-		"Accept":        []string{"application/json"},
-		"Authorization": []string{"Bearer " + ar.AccessToken},
-	})
-
-	return c.JSON(http.StatusOK, model.GithubUserFromJson(res.Body))
+	return c.JSON(http.StatusOK, model.GithubUserFromJson(bytes.NewReader(data)))
 }
 
 func (api *API) login(c echo.Context) error {
-	conf := api.server.Config()
-	authURL := api.server.Config().AuthEndpoint + `?client_id=` + conf.ClientID + `&redirect_uri=` + conf.RedirectURI + `&response_type=code&state=123123`
+	cookieValue := model.NewUUID()
+	service := c.Param("service")
+	redirectURI := api.server.Config().SiteURL + "/login/" + service + "/complete"
+	authURL, err := api.server.GetOAuthLoginEndpoint(service, cookieValue, redirectURI)
+	if err != nil {
+		return c.String(http.StatusInternalServerError, err.Error())
+	}
+
+	oauthCookie := &http.Cookie{
+		Name:     OAuthCookie,
+		Value:    cookieValue,
+		Path:     "/",
+		MaxAge:   OAuthCookieMaxAgeSeconds,
+		Expires:  time.Now().Add(OAuthCookieMaxAgeSeconds * time.Second),
+		HttpOnly: true,
+		Secure:   false,
+	}
+	c.SetCookie(oauthCookie)
+
 	return c.Redirect(http.StatusFound, authURL)
 }
