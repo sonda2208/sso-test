@@ -12,7 +12,7 @@ type GithubUser struct {
 	Name  string `json:"name"`
 }
 
-func GithubUserFromJson(data io.Reader) *GithubUser {
+func GithubUserFromJSON(data io.Reader) *GithubUser {
 	decoder := json.NewDecoder(data)
 	var ghu GithubUser
 	err := decoder.Decode(&ghu)

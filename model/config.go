@@ -3,6 +3,7 @@ package model
 const (
 	SSOServiceGithub = "github"
 	SSOServiceGitlab = "gitlab"
+	SSOServiceGoogle = "google"
 )
 
 type OAuthSettings struct {
@@ -20,6 +21,7 @@ type ServiceSettings struct {
 	SiteURL        string
 	GithubSettings OAuthSettings
 	GitlabSettings OAuthSettings
+	GoogleSettings OAuthSettings
 }
 
 func (s ServiceSettings) GetOAuthServiceSetting(service string) *OAuthSettings {
@@ -28,6 +30,8 @@ func (s ServiceSettings) GetOAuthServiceSetting(service string) *OAuthSettings {
 		return &s.GithubSettings
 	case SSOServiceGitlab:
 		return &s.GitlabSettings
+	case SSOServiceGoogle:
+		return &s.GoogleSettings
 	}
 
 	return nil

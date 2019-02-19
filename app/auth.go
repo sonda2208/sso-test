@@ -2,6 +2,7 @@ package app
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -28,7 +29,7 @@ func (s *Server) GetOAuthLoginEndpoint(service, cookieValue, redirectURI string)
 	authURL := setting.AuthEndpoint + "?client_id=" + setting.ClientID + "&redirect_uri=" + url.QueryEscape(redirectURI) + "&state=" + url.QueryEscape(state.Value) + "&response_type=code"
 
 	if len(setting.Scopes) > 0 {
-		authURL += "?scope=" + url.QueryEscape(setting.Scopes)
+		authURL += "&scope=" + url.QueryEscape(setting.Scopes)
 	}
 
 	return authURL, nil
@@ -81,8 +82,8 @@ func (s *Server) AuthorizeOAuthUser(service, code, state, cookieValue, redirectU
 		return nil, errors.New("missing access token")
 	}
 
-	if ar.TokenType != model.AccessTokenType {
-		return nil, errors.New("invalid token type")
+	if strings.ToLower(ar.TokenType) != model.AccessTokenType {
+		return nil, fmt.Errorf("invalid token type (%v)", ar.TokenType)
 	}
 
 	p = url.Values{}

@@ -13,7 +13,7 @@ type GitLabUser struct {
 	Name     string `json:"name"`
 }
 
-func GitLabUserFromJson(data io.Reader) *GitLabUser {
+func GitLabUserFromJSON(data io.Reader) *GitLabUser {
 	decoder := json.NewDecoder(data)
 	var glu GitLabUser
 	err := decoder.Decode(&glu)
