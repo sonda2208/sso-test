@@ -55,6 +55,10 @@ func (api *API) complete(c echo.Context) error {
 		user = model.UserFromGitlabUser(model.GitLabUserFromJSON(bytes.NewReader(data)))
 	case model.SSOServiceGoogle:
 		user = model.UserFromGoogleUser(model.GoogleUserFromJSON(bytes.NewReader(data)))
+	case model.SSOServiceFacebook:
+		user = model.UserFromFacebookUser(model.FacebookUserFromJSON(bytes.NewReader(data)))
+	default:
+		return c.String(http.StatusOK, string(data))
 	}
 
 	return c.JSON(http.StatusOK, *user)

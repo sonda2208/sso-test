@@ -34,3 +34,15 @@ func UserFromGoogleUser(ggu *GoogleUser) *User {
 
 	return user
 }
+
+func UserFromFacebookUser(fbu *FacebookUser) *User {
+	user := &User{}
+	user.Email = fbu.ID
+	user.Name = fbu.Name
+
+	if len(fbu.Email) > 0 {
+		user.Email = fbu.Email
+	}
+
+	return user
+}
