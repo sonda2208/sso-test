@@ -47,7 +47,17 @@ func (api *API) complete(c echo.Context) error {
 		return c.String(http.StatusInternalServerError, err.Error())
 	}
 
-	return c.JSON(http.StatusOK, model.GithubUserFromJson(bytes.NewReader(data)))
+	user := &model.User{}
+	switch service {
+	case model.SSOServiceGithub:
+		user = model.UserFromGithubUser(model.GithubUserFromJSON(bytes.NewReader(data)))
+	case model.SSOServiceGitlab:
+		user = model.UserFromGitlabUser(model.GitLabUserFromJSON(bytes.NewReader(data)))
+	case model.SSOServiceGoogle:
+		user = model.UserFromGoogleUser(model.GoogleUserFromJSON(bytes.NewReader(data)))
+	}
+
+	return c.JSON(http.StatusOK, *user)
 }
 
 func (api *API) login(c echo.Context) error {
