@@ -2,6 +2,8 @@ package api
 
 import (
 	"bytes"
+	"fmt"
+	"log"
 	"net/http"
 	"time"
 
@@ -15,11 +17,13 @@ const (
 )
 
 func (api *API) InitAuth() {
-	api.e.GET("/oauth/:service/login", api.login)
-	api.e.GET("/login/:service/complete", api.complete)
+	api.e.GET("/api/oauth/:service/login", api.login)
+	api.e.GET("/api/oauth/:service/complete", api.complete)
 }
 
 func (api *API) complete(c echo.Context) error {
+	log.Println("debug", c.Request().Host)
+
 	oauthError := c.QueryParam("error")
 	if oauthError == "access_denied" {
 		return c.String(http.StatusUnauthorized, "oauth access denied")
@@ -41,11 +45,13 @@ func (api *API) complete(c echo.Context) error {
 	}
 
 	service := c.Param("service")
-	redirectURI := api.server.Config().SiteURL + "/login/" + service + "/complete"
+	redirectURI := api.server.Config().SiteURL + "/api/oauth/" + service + "/complete"
 	data, err := api.server.AuthorizeOAuthUser(service, code, state, cookie.Value, redirectURI)
 	if err != nil {
 		return c.String(http.StatusInternalServerError, err.Error())
 	}
+
+	fmt.Println("debug", string(data))
 
 	user := &model.User{}
 	switch service {
@@ -67,7 +73,7 @@ func (api *API) complete(c echo.Context) error {
 func (api *API) login(c echo.Context) error {
 	cookieValue := model.NewUUID()
 	service := c.Param("service")
-	redirectURI := api.server.Config().SiteURL + "/login/" + service + "/complete"
+	redirectURI := api.server.Config().SiteURL + "/api/oauth/" + service + "/complete"
 	authURL, err := api.server.GetOAuthLoginEndpoint(service, cookieValue, redirectURI)
 	if err != nil {
 		return c.String(http.StatusInternalServerError, err.Error())
