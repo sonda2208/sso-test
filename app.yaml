@@ -1,4 +1,10 @@
+runtime: go
 env: flex
+
+handlers:
+- url: /.*
+  script: go run main.go
+
 manual_scaling:
   instances: 1
 resources:
