@@ -1,9 +1,6 @@
-runtime: go
-env: flex
+runtime: go111
 
-handlers:
-- url: /.*
-  script: go run main.go
+service: sso-test
 
 manual_scaling:
   instances: 1
